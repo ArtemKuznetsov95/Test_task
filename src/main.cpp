@@ -5,6 +5,7 @@
 #include <chrono>
 
 #include "sort_utils.h"
+
 int main()
 {
    std::cout << "Start sort\n";
@@ -15,8 +16,16 @@ int main()
 
    std::vector<int> data_copy1 = data;
 
-   measure_time("QuickSort", [](std::vector<int>& data) {
-          quicksort(data, 0, data.size() - 1);
+//   measure_time("QuickSort", [](std::vector<int>& data) {
+//          quickSort(data, 0, data.size() - 1);
+//      }, data_copy1);
+
+//   measure_time("QuickSort", [](std::vector<int>& data) {
+//          stableSort(data, 0, data.size() - 1);
+//      }, data_copy1);
+
+   measure_time("StableSort", [](std::vector<int>& data) {
+          quickSort(data, 0, data.size() - 1);
       }, data_copy1);
 
 	return 0;
