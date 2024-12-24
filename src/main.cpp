@@ -26,10 +26,10 @@ int main()
 
    std::cout << "sorting with the [ INT ] type:" << std::endl;
 
-   std::string sort_quick = "QuickSort";
-   std::string sort_stable = "StableSort";
-   std::string sort_heap = "HeapSort";
-   std::string sort_radix = "RadixSort";
+   std::string sort_quick = "QuickSort ";
+   std::string sort_stable = "StableSort ";
+   std::string sort_heap = "HeapSort ";
+   std::string sort_radix = "RadixSort ";
 
    std::vector<SortResult> int_results = {
       { sort_quick,
