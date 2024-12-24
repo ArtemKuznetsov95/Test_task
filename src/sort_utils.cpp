@@ -320,3 +320,20 @@ void radixSort(std::vector<std::string> &arr) {
       countingSort(arr, i);
    }
 }
+
+void printSortResults(const std::string &type, const std::vector<SortResult> &results) {
+   std::cout << "Type: " << type << "\n";
+
+   // Сортируем результаты по времени (по возрастанию)
+   std::vector<SortResult> sorted_results = results;
+   std::sort(sorted_results.begin(), sorted_results.end(), [](const SortResult& a, const SortResult& b) {
+      return a.time < b.time;
+   });
+
+   // Выводим топ-список
+   for (size_t i = 0; i < sorted_results.size(); ++i) {
+      std::cout << i + 1 << ". " << sorted_results[i].name << "\t"
+                << std::fixed << std::setprecision(6) << sorted_results[i].time << " sec\n";
+   }
+   std::cout << "\n";
+}

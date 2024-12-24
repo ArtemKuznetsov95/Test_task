@@ -7,16 +7,18 @@
 #include <algorithm>
 #include <thread>
 #include <chrono>
-//#include <string>
+#include <iomanip>
 
 ///  Функция для замеров времени
 template <typename Func, typename T>
-void measure_time(const std::string& name, Func func, std::vector<T>& data) {
+double measure_time(const std::string& name, Func func, std::vector<T>& data) {
     auto start = std::chrono::high_resolution_clock::now();
     func(data); // Вызов переданной функции
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
     std::cout << name << " completed in " << duration.count() << " sec.\n";
+
+    return duration.count();
 }
 
 //================/ Методы для типа int \================
@@ -89,5 +91,14 @@ void countingSort(std::vector<std::string>& arr, int index);
 
 /// Поразрядная сортировка (Radix Sort)
 void radixSort(std::vector<std::string>& arr);
+
+//------------------/ Вывод результатов \------------------
+struct SortResult {
+   std::string name; /// Имя сортировки
+   double time; /// Время выполнения
+};
+/// Функция для вывода результатов
+void printSortResults(const std::string& type, const std::vector<SortResult>& results);
+
 
 #endif // SORT_UTILS_H
