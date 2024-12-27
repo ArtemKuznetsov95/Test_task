@@ -18,18 +18,29 @@ int main()
    std::vector<int> data_copy_int_3 = data_int;
    std::vector<int> data_copy_int_4 = data_int;
 
+   std::vector<int> data_copy_int_multithreading_1 = data_int;
+   std::vector<int> data_copy_int_multithreading_2 = data_int;
+   std::vector<int> data_copy_int_multithreading_3 = data_int;
+   std::vector<int> data_copy_int_multithreading_4 = data_int;
+
 
    std::vector<std::string> data_copy_string_1 = data_string;
    std::vector<std::string> data_copy_string_2 = data_string;
    std::vector<std::string> data_copy_string_3 = data_string;
    std::vector<std::string> data_copy_string_4 = data_string;
 
+   std::vector<std::string> data_copy_string_multithreading_1 = data_string;
+   std::vector<std::string> data_copy_string_multithreading_2 = data_string;
+   std::vector<std::string> data_copy_string_multithreading_3 = data_string;
+   std::vector<std::string> data_copy_string_multithreading_4 = data_string;
+
    std::cout << "sorting with the [ INT ] type:" << std::endl;
 
-   std::string sort_quick = "QuickSort ";
+   std::string sort_quick  = "QuickSort ";
    std::string sort_stable = "StableSort ";
-   std::string sort_heap = "HeapSort ";
-   std::string sort_radix = "RadixSort ";
+   std::string sort_heap   = "HeapSort ";
+   std::string sort_radix  = "RadixSort ";
+   std::string milti       = "Milti";
 
    std::vector<SortResult> int_results = {
       { sort_quick,
@@ -54,6 +65,27 @@ int main()
    };
 
    std::cout << "\n";
+   std::cout << "sorting with the [ INT ] type milti:" << std::endl;
+
+   int_results.push_back({sort_quick + milti,
+                      measure_time(sort_quick + milti, [](std::vector<int>& data_copy_int_multithreading_1) {
+                         parallelQuickSort( data_copy_int_multithreading_1);
+                      }, data_copy_int_multithreading_1)});
+   int_results.push_back({sort_stable + milti,
+                      measure_time(sort_stable + milti, [](std::vector<int>& data_copy_int_multithreading_2) {
+                         parallelMergeSort( data_copy_int_multithreading_2);
+                      }, data_copy_int_multithreading_2)});
+   int_results.push_back({sort_heap + milti,
+                      measure_time(sort_heap + milti, [](std::vector<int>& data_copy_int_multithreading_3) {
+                         parallelHeapSort( data_copy_int_multithreading_3);
+                      }, data_copy_int_multithreading_3)});
+   int_results.push_back({sort_radix + milti,
+                      measure_time(sort_radix + milti, [](std::vector<int>& data_copy_int_multithreading_4) {
+                         radixSortMilti( data_copy_int_multithreading_4);
+                      }, data_copy_int_multithreading_4)});
+
+
+   std::cout << "\n";
    std::cout << "sorting with the [ STRING ] type" << std::endl;
 
    std::vector<SortResult> string_results = {
@@ -64,7 +96,7 @@ int main()
 
       { sort_stable,
         measure_time(sort_stable, [](std::vector<std::string>& data_copy_string_2) {
-           mergeSort(data_copy_string_2, 0, data_copy_string_2.size() - 1);
+           stableSort(data_copy_string_2, 0, data_copy_string_2.size() - 1);
         }, data_copy_string_2) },
 
       { sort_heap,
@@ -77,6 +109,26 @@ int main()
            radixSort(data_copy_string_4);
         }, data_copy_string_4) }
    };
+
+   std::cout << "\n";
+   std::cout << "sorting with the [ STRING ] type multi:" << std::endl;
+
+   string_results.push_back({sort_quick + milti,
+                      measure_time(sort_quick + milti, [](std::vector<std::string>& data_copy_string_multithreading_1) {
+                         parallelQuickSort( data_copy_string_multithreading_1);
+                      }, data_copy_string_multithreading_1)});
+   string_results.push_back({sort_stable + milti,
+                      measure_time(sort_stable + milti, [](std::vector<std::string>& data_copy_string_multithreading_2) {
+                         parallelMergeSort( data_copy_string_multithreading_2);
+                      }, data_copy_string_multithreading_2)});
+   string_results.push_back({sort_radix + milti,
+                      measure_time(sort_radix + milti, [](std::vector<std::string>& data_copy_string_multithreading_3) {
+                         parallelHeapSort( data_copy_string_multithreading_3);
+                      }, data_copy_string_multithreading_3)});
+   string_results.push_back({sort_radix + milti,
+                      measure_time(sort_radix + milti, [](std::vector<std::string>& data_copy_string_multithreading_4) {
+                         radixSortMilti( data_copy_string_multithreading_4);
+                      }, data_copy_string_multithreading_4)});
 
    std::cout << "\n";
    // Выводим результаты
