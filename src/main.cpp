@@ -81,7 +81,7 @@ int main()
                       }, data_copy_int_multithreading_3)});
    int_results.push_back({sort_radix + milti,
                       measure_time(sort_radix + milti, [](std::vector<int>& data_copy_int_multithreading_4) {
-                         radixSortMilti( data_copy_int_multithreading_4);
+                         parallelRadixSort(data_copy_int_multithreading_4);
                       }, data_copy_int_multithreading_4)});
 
 
@@ -127,7 +127,7 @@ int main()
                       }, data_copy_string_multithreading_3)});
    string_results.push_back({sort_radix + milti,
                       measure_time(sort_radix + milti, [](std::vector<std::string>& data_copy_string_multithreading_4) {
-                         radixSortMilti( data_copy_string_multithreading_4);
+                         parallelRadixSort( data_copy_string_multithreading_4);
                       }, data_copy_string_multithreading_4)});
 
    std::cout << "\n";

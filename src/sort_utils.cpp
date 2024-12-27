@@ -84,60 +84,8 @@ void radixSort(std::vector<int> &arr) {
    }
 }
 
-/// Поразрядная сортировка для строк в векторе arr, используя символы строк на позиции index
-void countingSort(std::vector<std::string> &arr, int index) {
-   int n = arr.size();
-   std::vector<std::string> output(n);
-   int count[256] = {0};
 
-   for (const auto& str : arr) {
-      char key = index < str.size() ? str[index] : 0;
-      count[key]++;
-   }
-
-   for (int i = 1; i < 256; i++) {
-      count[i] += count[i - 1];
-   }
-
-   for (int i = n - 1; i >= 0; i--) {
-      char key = index < arr[i].size() ? arr[i][index] : 0;
-      output[count[key] - 1] = arr[i];
-      count[key]--;
-   }
-
-   arr = output;
-}
-
-/// Поразрядная сортировка (Radix Sort)
-void radixSort(std::vector<std::string> &arr) {
-   int maxLen = 0;
-   for (const auto& str : arr) {
-      maxLen = std::max(maxLen, static_cast<int>(str.size()));
-   }
-
-   for (int i = maxLen - 1; i >= 0; i--) {
-      countingSort(arr, i);
-   }
-}
-
-void printSortResults(const std::string &type, const std::vector<SortResult> &results) {
-   std::cout << "Type: " << type << "\n";
-
-   // Сортируем результаты по времени (по возрастанию)
-   std::vector<SortResult> sorted_results = results;
-   std::sort(sorted_results.begin(), sorted_results.end(), [](const SortResult& a, const SortResult& b) {
-      return a.time < b.time;
-   });
-
-   // Выводим топ-список
-   for (size_t i = 0; i < sorted_results.size(); ++i) {
-      std::cout << i + 1 << ". " << sorted_results[i].name << "\t"
-                << std::fixed << std::setprecision(6) << sorted_results[i].time << " sec\n";
-   }
-   std::cout << "\n";
-}
-
-
+/// Поразрядная сортировка для чисел
 void countingSortForInt(std::vector<int> &arr, int exp,  int depth_limit) {
    int n = arr.size();
    std::vector<int> output(n);
@@ -164,6 +112,52 @@ void countingSortForInt(std::vector<int> &arr, int exp,  int depth_limit) {
        // Возможность вызвать другую задачу по разряду в потоке
        std::thread([&]() { countingSortForInt(arr, exp * 10, depth_limit - 1); }).join();
    }
+}
+
+/// Поразрядная сортировка для чисел (Radix Sort многопоточность)
+void parallelRadixSort(std::vector<int> &arr) {
+   int maxVal = getMax(arr);
+   int depth_limit = std::thread::hardware_concurrency();
+
+   for (int exp = 1; maxVal / exp > 0; exp *= 10) {
+      countingSortForInt(arr, exp, depth_limit);
+   }
+}
+
+/// Поразрядная сортировка (Radix Sort)
+void radixSort(std::vector<std::string> &arr) {
+   int maxLen = 0;
+   for (const auto& str : arr) {
+      maxLen = std::max(maxLen, static_cast<int>(str.size()));
+   }
+
+   for (int i = maxLen - 1; i >= 0; i--) {
+      countingSort(arr, i);
+   }
+}
+
+/// Поразрядная сортировка для строк в векторе arr, используя символы строк на позиции index
+void countingSort(std::vector<std::string> &arr, int index) {
+   int n = arr.size();
+   std::vector<std::string> output(n);
+   int count[256] = {0};
+
+   for (const auto& str : arr) {
+      char key = index < str.size() ? str[index] : 0;
+      count[key]++;
+   }
+
+   for (int i = 1; i < 256; i++) {
+      count[i] += count[i - 1];
+   }
+
+   for (int i = n - 1; i >= 0; i--) {
+      char key = index < arr[i].size() ? arr[i][index] : 0;
+      output[count[key] - 1] = arr[i];
+      count[key]--;
+   }
+
+   arr = output;
 }
 
 void countingSortForString(std::vector<std::string> &arr, int pos) {
@@ -195,16 +189,7 @@ void countingSortForString(std::vector<std::string> &arr, int pos) {
    }
 }
 
-void radixSortMilti(std::vector<int> &arr) {
-   int maxVal = getMax(arr);
-   int depth_limit = std::thread::hardware_concurrency();
-
-   for (int exp = 1; maxVal / exp > 0; exp *= 10) {
-      countingSortForInt(arr, exp, depth_limit);
-   }
-}
-
-void radixSortMilti(std::vector<std::string> &arr) {
+void parallelRadixSort(std::vector<std::string> &arr) {
    int maxLength = 0;
    for (const auto& str : arr) {
       maxLength = std::max(maxLength, (int)str.size());
@@ -216,74 +201,20 @@ void radixSortMilti(std::vector<std::string> &arr) {
    }
 }
 
-// Функция для получения разряда числа
-//int getDigit(int number, int digitPosition) {
-//    return (number / static_cast<int>(std::pow(10, digitPosition))) % 10;
-//}
+/// Поразрядная сортировка для строк (Radix Sort многопоточность)
+void printSortResults(const std::string &type, const std::vector<SortResult> &results) {
+   std::cout << "Type: " << type << "\n";
 
-// Функция для поразрядной сортировки с использованием одного потока
-void countingSortByDigit(std::vector<int>& arr, int digitPosition, int start, int end) {
-    const int base = 10; // Система счисления (десятичная)
-    std::vector<int> output(end - start, 0);
-    std::vector<int> count(base, 0);
+   // Сортируем результаты по времени (по возрастанию)
+   std::vector<SortResult> sorted_results = results;
+   std::sort(sorted_results.begin(), sorted_results.end(), [](const SortResult& a, const SortResult& b) {
+      return a.time < b.time;
+   });
 
-    // Подсчитываем частоту появления цифр на текущем разряде
-    for (int i = start; i < end; ++i) {
-        int digit = getDigit(arr[i], digitPosition);
-        count[digit]++;
-    }
-
-    // Считаем префиксные суммы для подсчета позиций
-    for (int i = 1; i < base; ++i) {
-        count[i] += count[i - 1];
-    }
-
-    // Создаем отсортированный массив для данного разряда
-    for (int i = end - 1; i >= start; --i) {
-        int digit = getDigit(arr[i], digitPosition);
-        output[count[digit] - 1] = arr[i];
-        count[digit]--;
-    }
-
-    // Копируем отсортированный массив обратно в исходный
-    for (int i = start; i < end; ++i) {
-        arr[i] = output[i - start];
-    }
-}
-
-// Оптимизированная многопоточная поразрядная сортировка
-void parallelRadixSort(std::vector<int>& arr) {
-    int maxDigit = 32;  // Для 32-битных чисел
-
-    // Параметры для многопоточности
-    int numThreads = std::thread::hardware_concurrency();  // Используем количество доступных ядер
-    int arraySize = arr.size();
-
-    // Если массив слишком мал для многопоточности, используем однопоточную сортировку
-    if (arraySize < 1000) {  // Порог для многопоточности, можно настроить
-        numThreads = 1;
-    }
-
-    // Сортируем по каждому разряду
-    for (int digitPosition = 0; digitPosition < maxDigit; ++digitPosition) {
-        // Массив для потоков
-        std::vector<std::thread> threads;
-
-        // Разделяем работу между потоками
-        int chunkSize = arraySize / numThreads;
-        for (int i = 0; i < numThreads; ++i) {
-            int start = i * chunkSize;
-            int end = (i == numThreads - 1) ? arraySize : (i + 1) * chunkSize;
-
-            // Запуск сортировки для каждого потока
-            threads.push_back(std::thread([&, start, end]() {
-                countingSortByDigit(arr, digitPosition, start, end);
-            }));
-        }
-
-        // Ожидаем завершения всех потоков
-        for (auto& t : threads) {
-            t.join();
-        }
-    }
+   // Выводим топ-список
+   for (size_t i = 0; i < sorted_results.size(); ++i) {
+      std::cout << i + 1 << ". " << sorted_results[i].name << "\t"
+                << std::fixed << std::setprecision(6) << sorted_results[i].time << " sec\n";
+   }
+   std::cout << "\n";
 }
