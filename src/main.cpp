@@ -111,5 +111,9 @@ int main()
    printSortResults("int", int_results);
    printSortResults("string", string_results);
 
+//   std::cout << sort_quick + milti << "\t";
+//   for(auto item : data_copy_string_multithreading_1)
+//      std::cout << item << " " ;
+//   std::cout << "\n";
 	return 0;
 }

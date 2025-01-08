@@ -11,6 +11,7 @@
 #include <future>
 #include <queue>
 
+
 ///  Функция для замеров времени
 template <typename Func, typename T>
 double measure_time(const std::string& name, Func func, std::vector<T>& data) {
@@ -52,39 +53,72 @@ std::vector<std::string> generateRandomStrings(size_t count);
 
 /// Быстроя сортировка (Quick Sort)
 template <typename T>
-void quickSort(std::vector<T>& arr, int low, int high) {
-   if (low < high) {
-      int pivot = partition(arr, low, high);
-      quickSort(arr, low, pivot - 1);
-      quickSort(arr, pivot + 1, high);
+void quickSort(std::vector<T>& arr, int left, int right) {
+   if (left >= right) return;
+
+   int i = left;
+   int j = right;
+   T pivot = arr[(left + right) / 2];  // Опорный элемент
+
+   while (i <= j) {
+       while (arr[i] < pivot) i++;
+       while (arr[j] > pivot) j--;
+       if (i <= j) {
+           std::swap(arr[i], arr[j]);
+           i++;
+           j--;
+       }
    }
+
+   if (left < j) quickSort(arr, left, j);
+   if (i < right) quickSort(arr, i, right);
 }
 
 /// Быстроя сортировка (Quick Sort многопоточность)
 template <typename T>
-void quickSort(std::vector<T>& arr, int low, int high, int depth_limit) {
-   if (low < high) {
-      int pivotIndex = partition(arr, low, high);
+void quickSort(std::vector<T>& arr, int left, int right, int numThreads) {
+   if (left >= right) return;
 
-      // Если есть запас потоков, запускаем рекурсию в потоках
-      if (depth_limit > 0) {
-         std::thread leftThread([&arr, low, pivotIndex, depth_limit]() {
-            quickSort(arr, low, pivotIndex - 1, depth_limit - 1);
-         });
-         quickSort(arr, pivotIndex + 1, high, depth_limit - 1);
-         leftThread.join();
-      } else {
-         quickSort(arr, low, pivotIndex - 1, 0);
-         quickSort(arr, pivotIndex + 1, high, 0);
+   int i = left;
+   int j = right;
+   T pivot = arr[(left + right) / 2];  // Опорный элемент
+
+   while (i <= j) {
+      while (arr[i] < pivot) i++;
+      while (arr[j] > pivot) j--;
+      if (i <= j) {
+         std::swap(arr[i], arr[j]);
+         i++;
+         j--;
       }
+   }
+   // Параллельная сортировка левой и правой частей
+   std::vector<std::future<void>> futures;
+
+   auto sortPart = [&](int l, int r) {
+      if (numThreads > 0) {
+         futures.push_back(std::async(std::launch::async, [&, l, r, numThreads]() {
+            quickSort(arr, l, r, numThreads - 1);
+         }));
+      } else {
+         quickSort(arr, l, r, 0);
+      }
+   };
+
+   sortPart(left, j);
+   sortPart(i, right);
+
+   // Ожидание завершения всех потоков
+   for (auto& future : futures) {
+      future.get();
    }
 }
 
 /// Вспомогательная функция для вызова сортировки
 template <typename T>
 void parallelQuickSort(std::vector<T>& arr) {
-    int depth_limit = std::thread::hardware_concurrency(); // Лимит глубины рекурсии
-    quickSort(arr, 0, arr.size() - 1, depth_limit);
+   int numThreads = std::thread::hardware_concurrency();
+   quickSort(arr, 0, arr.size() - 1, numThreads);
 }
 
 //------------------/ StableSort Sort \------------------
