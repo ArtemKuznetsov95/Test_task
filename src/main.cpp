@@ -8,7 +8,7 @@
 
 int main()
 {
-   size_t data_size = 1000000;
+   size_t data_size = 5000000;
    std::vector<int> data_int = generate_data(data_size);
    std::vector<std::string> data_string = generateRandomStrings(data_size);
 
@@ -44,7 +44,7 @@ int main()
 
       { sort_stable,
         measure_time(sort_stable, [](std::vector<int>& data_copy_int_2) {
-           stableSort(data_copy_int_2, 0, data_copy_int_2.size() - 1);
+           stableSort(data_copy_int_2);
         }, data_copy_int_2) },
 
       { sort_heap,
@@ -81,7 +81,7 @@ int main()
 
       { sort_stable,
         measure_time(sort_stable, [](std::vector<std::string>& data_copy_string_2) {
-           stableSort(data_copy_string_2, 0, data_copy_string_2.size() - 1);
+           stableSort(data_copy_string_2);
         }, data_copy_string_2) },
 
       { sort_heap,

@@ -24,21 +24,6 @@ double measure_time(const std::string& name, Func func, std::vector<T>& data) {
     return duration.count();
 }
 
-/// Функция для разбиения массива
-template <typename T>
-int partition(std::vector<T>& arr, int low, int high) {
-    T pivot = arr[high];
-    int i = low - 1;
-
-    for (int j = low; j < high; ++j) {
-        if (arr[j] <= pivot) {
-            std::swap(arr[++i], arr[j]);
-        }
-    }
-    std::swap(arr[i + 1], arr[high]);
-    return i + 1;
-}
-
 //-----------------/ Генерация значений \----------------
 /// Генерация случайных данных int
 std::vector<int> generate_data(size_t size);
@@ -142,50 +127,81 @@ void merge(std::vector<T>& arr, int left, int mid, int right) {
    while (j < rightArr.size()) arr[k++] = rightArr[j++];
 }
 
+// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
+template <typename T>
+void topDownMerge(const std::vector<T>& B, int iBegin, int iMiddle, int iEnd, std::vector<T>& A) {
+    int i = iBegin, j = iMiddle;
+
+    // Слияние двух половин
+    for (int k = iBegin; k < iEnd; k++) {
+        // Если левая половина еще есть и ее элемент меньше или равен правому
+        if (i < iMiddle && (j >= iEnd || B[i] <= B[j])) {
+            A[k] = B[i];
+            i++;
+        } else {
+            A[k] = B[j];
+            j++;
+        }
+    }
+}
+// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
+template <typename T>
+void topDownSplitMerge(std::vector<T>& B, int iBegin, int iEnd, std::vector<T>& A) {
+   if (iEnd - iBegin <= 1)             // если размер подмассива == 1
+       return;                          // считаем его отсортированным
+
+   // разбиение массива на две части
+   int iMiddle = (iEnd + iBegin) / 2;  // находим середину
+   // рекурсивно сортируем обе части из массива A[] в B[]
+   topDownSplitMerge(A, iBegin,  iMiddle, B);  // сортировка левой части
+   topDownSplitMerge(A, iMiddle,    iEnd, B);  // сортировка правой части
+   // слияние отсортированных частей из массива B[] в A[]
+   topDownMerge(B, iBegin, iMiddle, iEnd, A);
+}
+// Разбиение массива на несколько частей и параллельная сортировка
+template <typename T>
+void topDownSplitMerge(std::vector<T>& B, int iBegin, int iEnd, std::vector<T>& A, int currentDepth, std::vector<std::future<void>>& futures) {
+    if (iEnd - iBegin <= 1) return;  // если размер подмассива == 1, он уже отсортирован
+
+    int iMiddle = (iEnd + iBegin) / 2;  // находим середину массива
+
+    if (currentDepth < std::thread::hardware_concurrency()) {
+            // Используем async для асинхронной сортировки левой и правой половины
+            futures.push_back(std::async(std::launch::async, [&]() {
+                topDownSplitMerge(A, iBegin, iMiddle, B, currentDepth + 1, futures);
+            }));
+            futures.push_back(std::async(std::launch::async, [&]() {
+                topDownSplitMerge(A, iMiddle, iEnd, B, currentDepth + 1, futures);
+            }));
+        } else {
+        // Рекурсивно сортируем последовательно, если достигнут предел потоков
+        topDownSplitMerge(A, iBegin, iMiddle, B, currentDepth + 1, futures);
+        topDownSplitMerge(A, iMiddle, iEnd, B, currentDepth + 1, futures);
+    }
+
+    // Слияние отсортированных половин
+    topDownMerge(B, iBegin, iMiddle, iEnd, A);}
+
+
 /// Стаблильная сортировка (StableSort Sort)
 template <typename T>
-void stableSort(std::vector<T>& arr, int left, int right) {
-   if (left < right) {
-       int mid = left + (right - left) / 2;
-       stableSort(arr, left, mid);
-       stableSort(arr, mid + 1, right);
-       merge(arr, left, mid, right);
-   }
-}
-
-/// Рекурсия слияния
-template <typename T>
-void mergeSort(std::vector<T>& arr, int left, int right, int depth_limit) {
-    if (left < right) {
-        int mid = left + (right - left) / 2;
-
-        if (depth_limit > 0) {
-            // Запускаем сортировку левой половины в отдельном потоке
-            std::thread leftThread([&arr, left, mid, depth_limit]() {
-                mergeSort(arr, left, mid, depth_limit - 1);
-            });
-
-            // Сортируем правую половину в текущем потоке
-            mergeSort(arr, mid + 1, right, depth_limit - 1);
-
-            // Ждем завершения потока
-            leftThread.join();
-        } else {
-            // Без многопоточности, если достигнут лимит
-            mergeSort(arr, left, mid, 0);
-            mergeSort(arr, mid + 1, right, 0);
-        }
-
-        // Сливаем отсортированные части
-        merge(arr, left, mid, right);
-    }
+void stableSort(std::vector<T>& A) {
+   std::vector<T> B = A;
+   int n = A.size();
+   topDownSplitMerge(B, 0, n, A);
 }
 
 /// Стаблильная сортировка (StableSort Sort многопоточность)
 template <typename T>
-void parallelMergeSort(std::vector<T>& arr) {
-    int depth_limit = std::thread::hardware_concurrency(); // Лимит глубины рекурсии
-    mergeSort(arr, 0, arr.size() - 1, depth_limit);
+void parallelMergeSort(std::vector<T>& A) {
+   std::vector<T> B = A;
+   int n = A.size();
+   std::vector<std::future<void>> futures;
+   topDownSplitMerge(B, 0, n, A, 0, futures);
+   // Ожидаем завершения всех потоков
+   for (auto& fut : futures) {
+       fut.get();
+   }
 }
 
 //---------------------/ Heap Sort \------------------
