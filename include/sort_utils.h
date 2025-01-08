@@ -186,90 +186,74 @@ void heapSort(std::vector<T>& arr) {
    }
 }
 
-/// Восстановление кучи
+// Слияние двух отсортированных частей
 template <typename T>
-void heapify(std::vector<T>& arr, int n, int i, int depth_limit) {
-    int largest = i;
-    int left = 2 * i + 1;
-    int right = 2 * i + 2;
+std::vector<T> mergeHeadSort(const std::vector<T>& left, const std::vector<T>& right) {
+    std::vector<T> result;
+    size_t i = 0, j = 0;
 
-    if (left < n && arr[left] > arr[largest]) {
-        largest = left;
-    }
-
-    if (right < n && arr[right] > arr[largest]) {
-        largest = right;
-    }
-
-    if (largest != i) {
-        std::swap(arr[i], arr[largest]);
-        if (depth_limit > 0) {
-            heapify(arr, n, largest, depth_limit - 1);
+    while (i < left.size() && j < right.size()) {
+        if (left[i] <= right[j]) {
+            result.push_back(left[i]);
+            i++;
         } else {
-            heapify(arr, n, largest, 0);  // Без многопоточности
+            result.push_back(right[j]);
+            j++;
         }
     }
-}
-/// Построение кучи
-template <typename T>
-void buildHeap(std::vector<T>& arr, int n, int depth_limit) {
-    int startIdx = n / 2 - 1;
-    for (int i = startIdx; i >= 0; --i) {
-        heapify(arr, n, i, depth_limit);
+
+    // Добавляем оставшиеся элементы
+    while (i < left.size()) {
+        result.push_back(left[i]);
+        i++;
     }
+
+    while (j < right.size()) {
+        result.push_back(right[j]);
+        j++;
+    }
+
+    return result;
 }
 
 /// Сортировка кучей (Heap Sort многопоточность)
 template <typename T>
 void parallelHeapSort(std::vector<T>& arr) {
-   int n = arr.size();
-   int depth_limit = std::thread::hardware_concurrency();
+   int numThreads = std::thread::hardware_concurrency();
+   int partSize = arr.size() / numThreads;
+   std::vector<std::future<std::vector<T>>> futures;
 
-   buildHeap(arr, n, depth_limit);
+   // Разделяем массив на части и сортируем их в потоках
+   for (int i = 0; i < numThreads; i++) {
+      int start = i * partSize;
+      int end = (i == numThreads - 1) ? arr.size() : start + partSize;
 
-   for (int i = n - 1; i > 0; --i) {
-      std::swap(arr[0], arr[i]);
-      heapify(arr, i, 0, depth_limit);
+      futures.push_back(std::async(std::launch::async, [start, end, &arr]() {
+         std::vector<T> part(arr.begin() + start, arr.begin() + end);
+         heapSort(part);
+         return part;
+      }));
    }
+
+   // Собираем отсортированные части
+   std::vector<std::vector<T>> sortedParts;
+   for (auto& future : futures) {
+      sortedParts.push_back(future.get());
+   }
+
+   // Сливаем отсортированные части
+   while (sortedParts.size() > 1) {
+      std::vector<T> left = sortedParts.back();
+      sortedParts.pop_back();
+      std::vector<T> right = sortedParts.back();
+      sortedParts.pop_back();
+
+      sortedParts.push_back(mergeHeadSort(left, right));
+   }
+
+   // Результат
+   arr = sortedParts.front();
 }
-
-//--------------------/ Radix Sort \------------------
-
-/// Функция для получения разряда числа
-int getDigit(int number, int place);
-
-/// Получение максимального элемента
-template <typename T>
-T getMax(const std::vector<T>& arr) {
-    return *std::max_element(arr.begin(), arr.end());
-}
-
-//================/ Методы для типа int \================
-
-/// Поразрядная сортировка (Radix Sort)
-void radixSort(std::vector<int>& arr);
-
-/// Поразрядная сортировка для чисел
-void countingSortForInt(std::vector<int>& arr, int exp, int depth_limit);
-
-/// Поразрядная сортировка для чисел (Radix Sort многопоточность)
-void parallelRadixSort(std::vector<int>& arr);
-
-
-//================/ Методы для типа string \================
-
-/// Поразрядная сортировка (Radix Sort)
-void radixSort(std::vector<std::string>& arr);
-
-/// Поразрядная сортировка для строк
-void countingSortForString(std::vector<std::string>& arr, int pos);
-
-/// Поразрядная сортировка для строк в векторе arr, используя символы строк на позиции index
-void countingSort(std::vector<std::string>& arr, int index);
-
-
-/// Поразрядная сортировка для строк (Radix Sort многопоточность)
-void parallelRadixSort(std::vector<std::string>& arr);
 
 //------------------/ Вывод результатов \------------------
 struct SortResult {
