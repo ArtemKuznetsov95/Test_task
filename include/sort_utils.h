@@ -127,7 +127,7 @@ void merge(std::vector<T>& arr, int left, int mid, int right) {
    while (j < rightArr.size()) arr[k++] = rightArr[j++];
 }
 
-// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
+/// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
 template <typename T>
 void topDownMerge(const std::vector<T>& B, int iBegin, int iMiddle, int iEnd, std::vector<T>& A) {
     int i = iBegin, j = iMiddle;
@@ -144,21 +144,21 @@ void topDownMerge(const std::vector<T>& B, int iBegin, int iMiddle, int iEnd, st
         }
     }
 }
-// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
+/// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
 template <typename T>
 void topDownSplitMerge(std::vector<T>& B, int iBegin, int iEnd, std::vector<T>& A) {
    if (iEnd - iBegin <= 1)             // если размер подмассива == 1
-       return;                          // считаем его отсортированным
+       return;                         // считаем его отсортированным
 
    // разбиение массива на две части
    int iMiddle = (iEnd + iBegin) / 2;  // находим середину
    // рекурсивно сортируем обе части из массива A[] в B[]
    topDownSplitMerge(A, iBegin,  iMiddle, B);  // сортировка левой части
    topDownSplitMerge(A, iMiddle,    iEnd, B);  // сортировка правой части
-   // слияние отсортированных частей из массива B[] в A[]
-   topDownMerge(B, iBegin, iMiddle, iEnd, A);
+
+   topDownMerge(B, iBegin, iMiddle, iEnd, A);   // слияние отсортированных частей из массива B[] в A[]
 }
-// Основная функция рекурсивного разбиения и слияния с поддержкой многопоточности
+/// Основная функция рекурсивного разбиения и слияния с поддержкой многопоточности
 template <typename T>
 void topDownSplitMerge(std::vector<T>& B, int iBegin, int iEnd, std::vector<T>& A, int maxThreads) {
     if (iEnd - iBegin <= 1)
@@ -208,9 +208,10 @@ void heapify(std::vector<T>& arr, int n, int i) {
    int left = 2 * i + 1;
    int right = 2 * i + 2;
 
-   if (left < n && arr[left] > arr[largest]) largest = left;
-   if (right < n && arr[right] > arr[largest]) largest = right;
+   if (left < n && arr[left] > arr[largest]) largest = left; // Если левый потомок больше корня
+   if (right < n && arr[right] > arr[largest]) largest = right; // Если правый потомок больше текущего наибольшего элемента
 
+    // Если наибольший элемент не корень
    if (largest != i) {
       std::swap(arr[i], arr[largest]);
       heapify(arr, n, largest);
@@ -226,13 +227,14 @@ void heapSort(std::vector<T>& arr) {
       heapify(arr, n, i);
    }
 
+   // Извлечение элементов из кучи
    for (int i = n - 1; i > 0; i--) {
-      std::swap(arr[0], arr[i]);
-      heapify(arr, i, 0);
+      std::swap(arr[0], arr[i]); // Перемещаем текущий корень в конец
+      heapify(arr, i, 0);        // Вызываем heapify на уменьшенной куче
    }
 }
 
-// Слияние двух отсортированных частей
+/// Слияние двух отсортированных частей
 template <typename T>
 std::vector<T> mergeHeadSort(const std::vector<T>& left, const std::vector<T>& right) {
     std::vector<T> result;
@@ -303,11 +305,10 @@ void parallelHeapSort(std::vector<T>& arr) {
 
 //------------------/ Вывод результатов \------------------
 struct SortResult {
-   std::string name; /// Имя сортировки
-   double time; /// Время выполнения
+   std::string name; // Имя сортировки
+   double time;      // Время выполнения
 };
 /// Функция для вывода результатов
 void printSortResults(const std::string& type, const std::vector<SortResult>& results);
-
 
 #endif // SORT_UTILS_H

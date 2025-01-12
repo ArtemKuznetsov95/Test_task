@@ -64,10 +64,10 @@ int main()
                       measure_time(sort_stable + milti, [](std::vector<int>& data_copy_int_multithreading_2) {
                          parallelMergeSort( data_copy_int_multithreading_2);
                       }, data_copy_int_multithreading_2)});
-//   int_results.push_back({sort_heap + milti,
-//                      measure_time(sort_heap + milti, [](std::vector<int>& data_copy_int_multithreading_3) {
-//                         parallelHeapSort( data_copy_int_multithreading_3);
-//                      }, data_copy_int_multithreading_3)});
+   int_results.push_back({sort_heap + milti,
+                      measure_time(sort_heap + milti, [](std::vector<int>& data_copy_int_multithreading_3) {
+                         parallelHeapSort( data_copy_int_multithreading_3);
+                      }, data_copy_int_multithreading_3)});
 
 
    std::cout << "\n";
@@ -111,9 +111,5 @@ int main()
    printSortResults("int", int_results);
    printSortResults("string", string_results);
 
-//   std::cout << sort_quick + milti << "\t";
-//   for(auto item : data_copy_string_multithreading_1)
-//      std::cout << item << " " ;
-//   std::cout << "\n";
 	return 0;
 }
