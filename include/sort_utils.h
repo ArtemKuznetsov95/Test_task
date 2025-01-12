@@ -127,7 +127,7 @@ void merge(std::vector<T>& arr, int left, int mid, int right) {
    while (j < rightArr.size()) arr[k++] = rightArr[j++];
 }
 
-// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
+/// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
 template <typename T>
 void topDownMerge(const std::vector<T>& B, int iBegin, int iMiddle, int iEnd, std::vector<T>& A) {
     int i = iBegin, j = iMiddle;
@@ -144,45 +144,44 @@ void topDownMerge(const std::vector<T>& B, int iBegin, int iMiddle, int iEnd, st
         }
     }
 }
-// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
+/// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
 template <typename T>
 void topDownSplitMerge(std::vector<T>& B, int iBegin, int iEnd, std::vector<T>& A) {
    if (iEnd - iBegin <= 1)             // если размер подмассива == 1
-       return;                          // считаем его отсортированным
+       return;                         // считаем его отсортированным
 
    // разбиение массива на две части
    int iMiddle = (iEnd + iBegin) / 2;  // находим середину
    // рекурсивно сортируем обе части из массива A[] в B[]
    topDownSplitMerge(A, iBegin,  iMiddle, B);  // сортировка левой части
    topDownSplitMerge(A, iMiddle,    iEnd, B);  // сортировка правой части
-   // слияние отсортированных частей из массива B[] в A[]
-   topDownMerge(B, iBegin, iMiddle, iEnd, A);
+
+   topDownMerge(B, iBegin, iMiddle, iEnd, A);   // слияние отсортированных частей из массива B[] в A[]
 }
-// Разбиение массива на несколько частей и параллельная сортировка
+/// Основная функция рекурсивного разбиения и слияния с поддержкой многопоточности
 template <typename T>
-void topDownSplitMerge(std::vector<T>& B, int iBegin, int iEnd, std::vector<T>& A, int currentDepth, std::vector<std::future<void>>& futures) {
-    if (iEnd - iBegin <= 1) return;  // если размер подмассива == 1, он уже отсортирован
+void topDownSplitMerge(std::vector<T>& B, int iBegin, int iEnd, std::vector<T>& A, int maxThreads) {
+    if (iEnd - iBegin <= 1)
+        return;
 
-    int iMiddle = (iEnd + iBegin) / 2;  // находим середину массива
+    int iMiddle = (iEnd + iBegin) / 2;
 
-    if (currentDepth < std::thread::hardware_concurrency()) {
-            // Используем async для асинхронной сортировки левой и правой половины
-            futures.push_back(std::async(std::launch::async, [&]() {
-                topDownSplitMerge(A, iBegin, iMiddle, B, currentDepth + 1, futures);
-            }));
-            futures.push_back(std::async(std::launch::async, [&]() {
-                topDownSplitMerge(A, iMiddle, iEnd, B, currentDepth + 1, futures);
-            }));
-        } else {
-        // Рекурсивно сортируем последовательно, если достигнут предел потоков
-        topDownSplitMerge(A, iBegin, iMiddle, B, currentDepth + 1, futures);
-        topDownSplitMerge(A, iMiddle, iEnd, B, currentDepth + 1, futures);
+    // Если можно использовать еще потоки, запускаем рекурсивную сортировку в отдельных потоках
+    if (maxThreads > 1) {
+       std::thread leftThread([&A, iBegin, iMiddle, &B, maxThreads]() {
+           topDownSplitMerge<T>(A, iBegin, iMiddle, B, maxThreads / 2);
+       });
+        topDownSplitMerge(A, iMiddle, iEnd, B, maxThreads / 2);
+        leftThread.join();
+    } else {
+        // Если потоков больше нет, выполняем сортировку последовательно
+        topDownSplitMerge(A, iBegin, iMiddle, B, 1);
+        topDownSplitMerge(A, iMiddle, iEnd, B, 1);
     }
 
-    // Слияние отсортированных половин
-    topDownMerge(B, iBegin, iMiddle, iEnd, A);}
-
-
+    // Слияние отсортированных частей
+    topDownMerge(B, iBegin, iMiddle, iEnd, A);
+}
 /// Стаблильная сортировка (StableSort Sort)
 template <typename T>
 void stableSort(std::vector<T>& A) {
@@ -194,14 +193,11 @@ void stableSort(std::vector<T>& A) {
 /// Стаблильная сортировка (StableSort Sort многопоточность)
 template <typename T>
 void parallelMergeSort(std::vector<T>& A) {
-   std::vector<T> B = A;
-   int n = A.size();
-   std::vector<std::future<void>> futures;
-   topDownSplitMerge(B, 0, n, A, 0, futures);
-   // Ожидаем завершения всех потоков
-   for (auto& fut : futures) {
-       fut.get();
-   }
+   int numThreads = std::thread::hardware_concurrency();  // Получаем количество доступных потоков
+   if (numThreads == 0) numThreads = 2;  // Если информация о потоках недоступна, используем 2 потока
+
+   std::vector<T> B = A;  // Создаем временный массив
+   topDownSplitMerge(B, 0, A.size(), A, numThreads);
 }
 
 //---------------------/ Heap Sort \------------------
@@ -212,9 +208,10 @@ void heapify(std::vector<T>& arr, int n, int i) {
    int left = 2 * i + 1;
    int right = 2 * i + 2;
 
-   if (left < n && arr[left] > arr[largest]) largest = left;
-   if (right < n && arr[right] > arr[largest]) largest = right;
+   if (left < n && arr[left] > arr[largest]) largest = left; // Если левый потомок больше корня
+   if (right < n && arr[right] > arr[largest]) largest = right; // Если правый потомок больше текущего наибольшего элемента
 
+    // Если наибольший элемент не корень
    if (largest != i) {
       std::swap(arr[i], arr[largest]);
       heapify(arr, n, largest);
@@ -230,13 +227,14 @@ void heapSort(std::vector<T>& arr) {
       heapify(arr, n, i);
    }
 
+   // Извлечение элементов из кучи
    for (int i = n - 1; i > 0; i--) {
-      std::swap(arr[0], arr[i]);
-      heapify(arr, i, 0);
+      std::swap(arr[0], arr[i]); // Перемещаем текущий корень в конец
+      heapify(arr, i, 0);        // Вызываем heapify на уменьшенной куче
    }
 }
 
-// Слияние двух отсортированных частей
+/// Слияние двух отсортированных частей
 template <typename T>
 std::vector<T> mergeHeadSort(const std::vector<T>& left, const std::vector<T>& right) {
     std::vector<T> result;
@@ -307,11 +305,10 @@ void parallelHeapSort(std::vector<T>& arr) {
 
 //------------------/ Вывод результатов \------------------
 struct SortResult {
-   std::string name; /// Имя сортировки
-   double time; /// Время выполнения
+   std::string name; // Имя сортировки
+   double time;      // Время выполнения
 };
 /// Функция для вывода результатов
 void printSortResults(const std::string& type, const std::vector<SortResult>& results);
-
 
 #endif // SORT_UTILS_H

@@ -3,8 +3,8 @@
 /// Генерация случайных данных int
 std::vector<int> generate_data(size_t size) {
    std::vector<int> data(size);
-   std::random_device rd;
-   std::mt19937 gen(rd());
+   unsigned int seed = static_cast<unsigned int>(std::chrono::steady_clock::now().time_since_epoch().count());
+   std::mt19937 gen(seed);
    std::uniform_int_distribution<> dis(1, 1000000);
    for (auto &x : data) {
       x = dis(gen);
@@ -15,8 +15,8 @@ std::vector<int> generate_data(size_t size) {
 /// Функция для генерации случайной строки
 std::string generateRandomString(size_t length) {
    const std::string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-   static std::random_device rd;
-   static std::mt19937 generator(rd());
+   unsigned int seed = static_cast<unsigned int>(std::chrono::steady_clock::now().time_since_epoch().count());
+   std::mt19937 generator(seed);
    static std::uniform_int_distribution<> charDist(0, characters.size() - 1);
 
    std::string randomString;
@@ -31,8 +31,8 @@ std::vector<std::string> generateRandomStrings(size_t count) {
    std::vector<std::string> randomStrings;
    randomStrings.reserve(count);
 
-   static std::random_device rd;
-   static std::mt19937 generator(rd());
+   unsigned int seed = static_cast<unsigned int>(std::chrono::steady_clock::now().time_since_epoch().count());
+   std::mt19937 generator(seed);
    static std::uniform_int_distribution<> lengthDist(1, 10); // Длина строки от 1 до 10
 
    for (size_t i = 0; i < count; ++i) {
