@@ -8,7 +8,7 @@
 
 int main()
 {
-   size_t data_size = 5000000;
+   size_t data_size = 1000000;
    std::vector<int> data_int = generate_data(data_size);
    std::vector<std::string> data_string = generateRandomStrings(data_size);
 
@@ -64,10 +64,10 @@ int main()
                       measure_time(sort_stable + milti, [](std::vector<int>& data_copy_int_multithreading_2) {
                          parallelMergeSort( data_copy_int_multithreading_2);
                       }, data_copy_int_multithreading_2)});
-   int_results.push_back({sort_heap + milti,
-                      measure_time(sort_heap + milti, [](std::vector<int>& data_copy_int_multithreading_3) {
-                         parallelHeapSort( data_copy_int_multithreading_3);
-                      }, data_copy_int_multithreading_3)});
+//   int_results.push_back({sort_heap + milti,
+//                      measure_time(sort_heap + milti, [](std::vector<int>& data_copy_int_multithreading_3) {
+//                         parallelHeapSort( data_copy_int_multithreading_3);
+//                      }, data_copy_int_multithreading_3)});
 
 
    std::cout << "\n";
