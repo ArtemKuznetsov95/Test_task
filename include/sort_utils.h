@@ -11,6 +11,7 @@
 #include <future>
 #include <queue>
 
+
 ///  Функция для замеров времени
 template <typename Func, typename T>
 double measure_time(const std::string& name, Func func, std::vector<T>& data) {
@@ -21,21 +22,6 @@ double measure_time(const std::string& name, Func func, std::vector<T>& data) {
     std::cout << name << " completed in " << duration.count() << " sec.\n";
 
     return duration.count();
-}
-
-/// Функция для разбиения массива
-template <typename T>
-int partition(std::vector<T>& arr, int low, int high) {
-    T pivot = arr[high];
-    int i = low - 1;
-
-    for (int j = low; j < high; ++j) {
-        if (arr[j] <= pivot) {
-            std::swap(arr[++i], arr[j]);
-        }
-    }
-    std::swap(arr[i + 1], arr[high]);
-    return i + 1;
 }
 
 //-----------------/ Генерация значений \----------------
@@ -52,39 +38,72 @@ std::vector<std::string> generateRandomStrings(size_t count);
 
 /// Быстроя сортировка (Quick Sort)
 template <typename T>
-void quickSort(std::vector<T>& arr, int low, int high) {
-   if (low < high) {
-      int pivot = partition(arr, low, high);
-      quickSort(arr, low, pivot - 1);
-      quickSort(arr, pivot + 1, high);
+void quickSort(std::vector<T>& arr, int left, int right) {
+   if (left >= right) return;
+
+   int i = left;
+   int j = right;
+   T pivot = arr[(left + right) / 2];  // Опорный элемент
+
+   while (i <= j) {
+       while (arr[i] < pivot) i++;
+       while (arr[j] > pivot) j--;
+       if (i <= j) {
+           std::swap(arr[i], arr[j]);
+           i++;
+           j--;
+       }
    }
+
+   if (left < j) quickSort(arr, left, j);
+   if (i < right) quickSort(arr, i, right);
 }
 
 /// Быстроя сортировка (Quick Sort многопоточность)
 template <typename T>
-void quickSort(std::vector<T>& arr, int low, int high, int depth_limit) {
-   if (low < high) {
-      int pivotIndex = partition(arr, low, high);
+void quickSort(std::vector<T>& arr, int left, int right, int numThreads) {
+   if (left >= right) return;
 
-      // Если есть запас потоков, запускаем рекурсию в потоках
-      if (depth_limit > 0) {
-         std::thread leftThread([&arr, low, pivotIndex, depth_limit]() {
-            quickSort(arr, low, pivotIndex - 1, depth_limit - 1);
-         });
-         quickSort(arr, pivotIndex + 1, high, depth_limit - 1);
-         leftThread.join();
-      } else {
-         quickSort(arr, low, pivotIndex - 1, 0);
-         quickSort(arr, pivotIndex + 1, high, 0);
+   int i = left;
+   int j = right;
+   T pivot = arr[(left + right) / 2];  // Опорный элемент
+
+   while (i <= j) {
+      while (arr[i] < pivot) i++;
+      while (arr[j] > pivot) j--;
+      if (i <= j) {
+         std::swap(arr[i], arr[j]);
+         i++;
+         j--;
       }
+   }
+   // Параллельная сортировка левой и правой частей
+   std::vector<std::future<void>> futures;
+
+   auto sortPart = [&](int l, int r) {
+      if (numThreads > 0) {
+         futures.push_back(std::async(std::launch::async, [&, l, r, numThreads]() {
+            quickSort(arr, l, r, numThreads - 1);
+         }));
+      } else {
+         quickSort(arr, l, r, 0);
+      }
+   };
+
+   sortPart(left, j);
+   sortPart(i, right);
+
+   // Ожидание завершения всех потоков
+   for (auto& future : futures) {
+      future.get();
    }
 }
 
 /// Вспомогательная функция для вызова сортировки
 template <typename T>
 void parallelQuickSort(std::vector<T>& arr) {
-    int depth_limit = std::thread::hardware_concurrency(); // Лимит глубины рекурсии
-    quickSort(arr, 0, arr.size() - 1, depth_limit);
+   int numThreads = std::thread::hardware_concurrency();
+   quickSort(arr, 0, arr.size() - 1, numThreads);
 }
 
 //------------------/ StableSort Sort \------------------
@@ -108,50 +127,81 @@ void merge(std::vector<T>& arr, int left, int mid, int right) {
    while (j < rightArr.size()) arr[k++] = rightArr[j++];
 }
 
+// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
+template <typename T>
+void topDownMerge(const std::vector<T>& B, int iBegin, int iMiddle, int iEnd, std::vector<T>& A) {
+    int i = iBegin, j = iMiddle;
+
+    // Слияние двух половин
+    for (int k = iBegin; k < iEnd; k++) {
+        // Если левая половина еще есть и ее элемент меньше или равен правому
+        if (i < iMiddle && (j >= iEnd || B[i] <= B[j])) {
+            A[k] = B[i];
+            i++;
+        } else {
+            A[k] = B[j];
+            j++;
+        }
+    }
+}
+// Разбиение массива A[] на две части, сортировка обеих частей в B[], слияние в A[]
+template <typename T>
+void topDownSplitMerge(std::vector<T>& B, int iBegin, int iEnd, std::vector<T>& A) {
+   if (iEnd - iBegin <= 1)             // если размер подмассива == 1
+       return;                          // считаем его отсортированным
+
+   // разбиение массива на две части
+   int iMiddle = (iEnd + iBegin) / 2;  // находим середину
+   // рекурсивно сортируем обе части из массива A[] в B[]
+   topDownSplitMerge(A, iBegin,  iMiddle, B);  // сортировка левой части
+   topDownSplitMerge(A, iMiddle,    iEnd, B);  // сортировка правой части
+   // слияние отсортированных частей из массива B[] в A[]
+   topDownMerge(B, iBegin, iMiddle, iEnd, A);
+}
+// Разбиение массива на несколько частей и параллельная сортировка
+template <typename T>
+void topDownSplitMerge(std::vector<T>& B, int iBegin, int iEnd, std::vector<T>& A, int currentDepth, std::vector<std::future<void>>& futures) {
+    if (iEnd - iBegin <= 1) return;  // если размер подмассива == 1, он уже отсортирован
+
+    int iMiddle = (iEnd + iBegin) / 2;  // находим середину массива
+
+    if (currentDepth < std::thread::hardware_concurrency()) {
+            // Используем async для асинхронной сортировки левой и правой половины
+            futures.push_back(std::async(std::launch::async, [&]() {
+                topDownSplitMerge(A, iBegin, iMiddle, B, currentDepth + 1, futures);
+            }));
+            futures.push_back(std::async(std::launch::async, [&]() {
+                topDownSplitMerge(A, iMiddle, iEnd, B, currentDepth + 1, futures);
+            }));
+        } else {
+        // Рекурсивно сортируем последовательно, если достигнут предел потоков
+        topDownSplitMerge(A, iBegin, iMiddle, B, currentDepth + 1, futures);
+        topDownSplitMerge(A, iMiddle, iEnd, B, currentDepth + 1, futures);
+    }
+
+    // Слияние отсортированных половин
+    topDownMerge(B, iBegin, iMiddle, iEnd, A);}
+
+
 /// Стаблильная сортировка (StableSort Sort)
 template <typename T>
-void stableSort(std::vector<T>& arr, int left, int right) {
-   if (left < right) {
-       int mid = left + (right - left) / 2;
-       stableSort(arr, left, mid);
-       stableSort(arr, mid + 1, right);
-       merge(arr, left, mid, right);
-   }
-}
-
-/// Рекурсия слияния
-template <typename T>
-void mergeSort(std::vector<T>& arr, int left, int right, int depth_limit) {
-    if (left < right) {
-        int mid = left + (right - left) / 2;
-
-        if (depth_limit > 0) {
-            // Запускаем сортировку левой половины в отдельном потоке
-            std::thread leftThread([&arr, left, mid, depth_limit]() {
-                mergeSort(arr, left, mid, depth_limit - 1);
-            });
-
-            // Сортируем правую половину в текущем потоке
-            mergeSort(arr, mid + 1, right, depth_limit - 1);
-
-            // Ждем завершения потока
-            leftThread.join();
-        } else {
-            // Без многопоточности, если достигнут лимит
-            mergeSort(arr, left, mid, 0);
-            mergeSort(arr, mid + 1, right, 0);
-        }
-
-        // Сливаем отсортированные части
-        merge(arr, left, mid, right);
-    }
+void stableSort(std::vector<T>& A) {
+   std::vector<T> B = A;
+   int n = A.size();
+   topDownSplitMerge(B, 0, n, A);
 }
 
 /// Стаблильная сортировка (StableSort Sort многопоточность)
 template <typename T>
-void parallelMergeSort(std::vector<T>& arr) {
-    int depth_limit = std::thread::hardware_concurrency(); // Лимит глубины рекурсии
-    mergeSort(arr, 0, arr.size() - 1, depth_limit);
+void parallelMergeSort(std::vector<T>& A) {
+   std::vector<T> B = A;
+   int n = A.size();
+   std::vector<std::future<void>> futures;
+   topDownSplitMerge(B, 0, n, A, 0, futures);
+   // Ожидаем завершения всех потоков
+   for (auto& fut : futures) {
+       fut.get();
+   }
 }
 
 //---------------------/ Heap Sort \------------------
@@ -186,90 +236,74 @@ void heapSort(std::vector<T>& arr) {
    }
 }
 
-/// Восстановление кучи
+// Слияние двух отсортированных частей
 template <typename T>
-void heapify(std::vector<T>& arr, int n, int i, int depth_limit) {
-    int largest = i;
-    int left = 2 * i + 1;
-    int right = 2 * i + 2;
+std::vector<T> mergeHeadSort(const std::vector<T>& left, const std::vector<T>& right) {
+    std::vector<T> result;
+    size_t i = 0, j = 0;
 
-    if (left < n && arr[left] > arr[largest]) {
-        largest = left;
-    }
-
-    if (right < n && arr[right] > arr[largest]) {
-        largest = right;
-    }
-
-    if (largest != i) {
-        std::swap(arr[i], arr[largest]);
-        if (depth_limit > 0) {
-            heapify(arr, n, largest, depth_limit - 1);
+    while (i < left.size() && j < right.size()) {
+        if (left[i] <= right[j]) {
+            result.push_back(left[i]);
+            i++;
         } else {
-            heapify(arr, n, largest, 0);  // Без многопоточности
+            result.push_back(right[j]);
+            j++;
         }
     }
-}
-/// Построение кучи
-template <typename T>
-void buildHeap(std::vector<T>& arr, int n, int depth_limit) {
-    int startIdx = n / 2 - 1;
-    for (int i = startIdx; i >= 0; --i) {
-        heapify(arr, n, i, depth_limit);
+
+    // Добавляем оставшиеся элементы
+    while (i < left.size()) {
+        result.push_back(left[i]);
+        i++;
     }
+
+    while (j < right.size()) {
+        result.push_back(right[j]);
+        j++;
+    }
+
+    return result;
 }
 
 /// Сортировка кучей (Heap Sort многопоточность)
 template <typename T>
 void parallelHeapSort(std::vector<T>& arr) {
-   int n = arr.size();
-   int depth_limit = std::thread::hardware_concurrency();
+   int numThreads = std::thread::hardware_concurrency();
+   int partSize = arr.size() / numThreads;
+   std::vector<std::future<std::vector<T>>> futures;
 
-   buildHeap(arr, n, depth_limit);
+   // Разделяем массив на части и сортируем их в потоках
+   for (int i = 0; i < numThreads; i++) {
+      int start = i * partSize;
+      int end = (i == numThreads - 1) ? arr.size() : start + partSize;
 
-   for (int i = n - 1; i > 0; --i) {
-      std::swap(arr[0], arr[i]);
-      heapify(arr, i, 0, depth_limit);
+      futures.push_back(std::async(std::launch::async, [start, end, &arr]() {
+         std::vector<T> part(arr.begin() + start, arr.begin() + end);
+         heapSort(part);
+         return part;
+      }));
    }
+
+   // Собираем отсортированные части
+   std::vector<std::vector<T>> sortedParts;
+   for (auto& future : futures) {
+      sortedParts.push_back(future.get());
+   }
+
+   // Сливаем отсортированные части
+   while (sortedParts.size() > 1) {
+      std::vector<T> left = sortedParts.back();
+      sortedParts.pop_back();
+      std::vector<T> right = sortedParts.back();
+      sortedParts.pop_back();
+
+      sortedParts.push_back(mergeHeadSort(left, right));
+   }
+
+   // Результат
+   arr = sortedParts.front();
 }
-
-//--------------------/ Radix Sort \------------------
-
-/// Функция для получения разряда числа
-int getDigit(int number, int place);
-
-/// Получение максимального элемента
-template <typename T>
-T getMax(const std::vector<T>& arr) {
-    return *std::max_element(arr.begin(), arr.end());
-}
-
-//================/ Методы для типа int \================
-
-/// Поразрядная сортировка (Radix Sort)
-void radixSort(std::vector<int>& arr);
-
-/// Поразрядная сортировка для чисел
-void countingSortForInt(std::vector<int>& arr, int exp, int depth_limit);
-
-/// Поразрядная сортировка для чисел (Radix Sort многопоточность)
-void parallelRadixSort(std::vector<int>& arr);
-
-
-//================/ Методы для типа string \================
-
-/// Поразрядная сортировка (Radix Sort)
-void radixSort(std::vector<std::string>& arr);
-
-/// Поразрядная сортировка для строк
-void countingSortForString(std::vector<std::string>& arr, int pos);
-
-/// Поразрядная сортировка для строк в векторе arr, используя символы строк на позиции index
-void countingSort(std::vector<std::string>& arr, int index);
-
-
-/// Поразрядная сортировка для строк (Radix Sort многопоточность)
-void parallelRadixSort(std::vector<std::string>& arr);
 
 //------------------/ Вывод результатов \------------------
 struct SortResult {
